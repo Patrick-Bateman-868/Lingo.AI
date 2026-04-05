@@ -1,0 +1,7 @@
+{
+  "name": "LingoQuest AI",
+  "description": "An AI-powered English learning platform with gamified levels, voice interaction, and personalized coaching.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
