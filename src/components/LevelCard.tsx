@@ -27,23 +27,23 @@ export function LevelCard({ level, isLocked, isCompleted, onClick }: LevelCardPr
         "relative p-6 rounded-2xl border-2 transition-all cursor-pointer overflow-hidden",
         isLocked 
           ? "bg-gray-50 border-gray-200 opacity-60 grayscale cursor-not-allowed" 
-          : "bg-white border-blue-100 hover:border-blue-400 shadow-sm hover:shadow-md",
-        isCompleted && "border-green-400 bg-green-50"
+          : "bg-white/80 backdrop-blur-sm border-sky-100 hover:border-sky-400 shadow-sm hover:shadow-md",
+        isCompleted && "border-teal-400 bg-teal-50/50"
       )}
     >
       <div className="flex items-start justify-between mb-4">
         <div className={cn(
           "p-3 rounded-xl",
-          isLocked ? "bg-gray-200" : "bg-blue-100 text-blue-600"
+          isLocked ? "bg-gray-200" : "bg-sky-100 text-sky-600"
         )}>
           <Icon size={24} />
         </div>
         {isLocked ? (
           <Icons.Lock size={20} className="text-gray-400" />
         ) : isCompleted ? (
-          <Icons.CheckCircle size={20} className="text-green-500" />
+          <Icons.CheckCircle size={20} className="text-teal-500" />
         ) : (
-          <Icons.ChevronRight size={20} className="text-blue-400" />
+          <Icons.ChevronRight size={20} className="text-sky-400" />
         )}
       </div>
 

@@ -21,6 +21,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
   const [translation, setTranslation] = useState<{ text: string; original: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const greetingSentRef = useRef(false);
   const { isListening, transcript, startListening, stopListening, playPCM } = useSpeech();
 
   const handleTranslate = async (text: string) => {
@@ -57,9 +58,10 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
     const data = await res.json();
     setMessages(data);
     
-    if (data.length === 0) {
+    if (data.length === 0 && !greetingSentRef.current) {
+      greetingSentRef.current = true;
       // Initial greeting
-      handleAISend("Hello! I'm your English partner for today. " + (level.id === 1 ? "Don't be nervous, we'll start very slowly. How are you feeling?" : "Are you ready to practice?"));
+      handleAISend(`Hello, ${user.username}! I'm Speak Easy AI - your personal coach. I will help you to speak English fluently and confidently. ` + (level.id === 1 ? "Don't be nervous, we'll start with very simple topics and speak slowly. How are you feeling today?" : "Are you ready to practice? Let's begin!"));
     }
   };
 
@@ -114,11 +116,11 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 rounded-3xl overflow-hidden shadow-xl border border-gray-200">
+    <div className="flex flex-col h-full bg-gradient-to-br from-sky-50 to-teal-50 rounded-3xl overflow-hidden shadow-xl border border-white/50 backdrop-blur-sm">
       {/* Header */}
-      <div className="bg-white p-4 border-b flex items-center justify-between">
+      <div className="bg-white/80 backdrop-blur-md p-4 border-b flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button onClick={onBack} className="p-2 hover:bg-sky-100 rounded-full transition-colors text-sky-600">
             <Icons.ArrowLeft size={20} />
           </button>
           <div>
@@ -126,9 +128,9 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
             <p className="text-xs text-gray-500">Level {level.id} • {level.voiceName} Voice</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 bg-blue-50 px-3 py-1 rounded-full">
-          <Icons.Trophy size={14} className="text-blue-600" />
-          <span className="text-xs font-bold text-blue-700">{Math.floor(messages.length / 2)} / 5 Steps</span>
+        <div className="flex items-center gap-2 bg-sky-100 px-3 py-1 rounded-full">
+          <Icons.Trophy size={14} className="text-sky-600" />
+          <span className="text-xs font-bold text-sky-700">{Math.floor(messages.length / 2)} / 5 Steps</span>
         </div>
       </div>
 
@@ -144,8 +146,8 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
             >
               <div className={`max-w-[80%] p-4 rounded-2xl relative group ${
                 msg.role === 'user' 
-                  ? 'bg-blue-600 text-white rounded-tr-none' 
-                  : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-tl-none'
+                  ? 'bg-gradient-to-r from-sky-500 to-teal-500 text-white rounded-tr-none shadow-lg shadow-sky-100' 
+                  : 'bg-white text-gray-800 shadow-sm border border-white rounded-tl-none'
               }`}>
                 <div className="prose prose-sm max-w-none">
                   <ReactMarkdown>
@@ -238,7 +240,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
           <button
             onClick={() => handleSend(input)}
             disabled={!input.trim() || isLoading}
-            className="p-4 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="p-4 bg-gradient-to-r from-sky-500 to-teal-500 text-white rounded-full hover:from-sky-600 hover:to-teal-600 disabled:opacity-50 transition-colors shadow-lg shadow-sky-100"
           >
             <Icons.Send size={24} />
           </button>

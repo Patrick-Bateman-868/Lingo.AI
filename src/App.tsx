@@ -50,16 +50,16 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full text-center"
+          className="bg-white/90 backdrop-blur-sm p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/20"
         >
-          <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Icons.Globe size={40} />
           </div>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">LingoQuest AI</h1>
+          <h1 className="text-3xl font-black text-gray-900 mb-2">SpeakEasyAI</h1>
           <p className="text-gray-500 mb-8">Master English through immersive AI conversations.</p>
           
           <div className="space-y-4">
@@ -68,12 +68,12 @@ export default function App() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your name"
-              className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-blue-500 focus:ring-0 outline-none transition-all"
+              className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-sky-500 focus:ring-0 outline-none transition-all"
             />
             <button
               onClick={() => username && fetchUser(username)}
               disabled={!username || isLoggingIn}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 disabled:opacity-50"
+              className="w-full py-4 bg-gradient-to-r from-sky-500 to-teal-500 text-white rounded-2xl font-bold hover:from-sky-600 hover:to-teal-600 transition-all shadow-lg shadow-sky-200 disabled:opacity-50"
             >
               {isLoggingIn ? 'Joining...' : 'Start Adventure'}
             </button>
@@ -84,12 +84,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-teal-50 text-gray-900 font-sans">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <header className="flex items-center justify-between mb-12">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-teal-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-sky-100">
               <Icons.User size={24} />
             </div>
             <div>
@@ -99,7 +99,7 @@ export default function App() {
                   <Icons.Star size={14} fill="currentColor" /> {user.stars}
                 </span>
                 <span className="text-gray-400">•</span>
-                <span className="text-blue-600 font-bold">Level {user.current_level}</span>
+                <span className="text-sky-600 font-bold">Level {user.current_level}</span>
               </div>
             </div>
           </div>

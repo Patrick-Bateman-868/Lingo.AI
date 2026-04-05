@@ -1,4 +1,4 @@
-# LingoQuest AI - English Learning Platform
+# SpeakEasyAI - English Learning Platform
 
 An AI-powered English learning platform with gamified levels, voice interaction, and personalized coaching.
 
