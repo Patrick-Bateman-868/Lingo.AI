@@ -50,30 +50,37 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 overflow-hidden relative">
+        {/* Animated background elements */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-sky-500/20 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/20 rounded-full blur-[120px] animate-pulse [animation-delay:2s]" />
+        
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/90 backdrop-blur-sm p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border border-white/20"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-dark p-12 rounded-[2.5rem] shadow-2xl max-w-md w-full text-center relative z-10"
         >
-          <div className="w-20 h-20 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Icons.Globe size={40} />
+          <div className="w-24 h-24 bg-gradient-to-br from-sky-400 to-teal-400 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl rotate-3 hover:rotate-0 transition-transform duration-500">
+            <Icons.Languages size={48} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">SpeakEasyAI</h1>
-          <p className="text-gray-500 mb-8">Master English through immersive AI conversations.</p>
+          <h1 className="text-4xl font-black text-white mb-3 tracking-tight">SpeakEasyAI</h1>
+          <p className="text-slate-400 mb-10 font-medium">Master English through immersive AI conversations.</p>
           
           <div className="space-y-4">
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your name"
-              className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-sky-500 focus:ring-0 outline-none transition-all"
-            />
+            <div className="relative group">
+              <Icons.User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-sky-400 transition-colors" size={20} />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your name"
+                className="w-full pl-14 pr-6 py-4 bg-slate-800/50 border border-white/10 rounded-2xl text-white placeholder:text-slate-600 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all font-medium"
+              />
+            </div>
             <button
               onClick={() => username && fetchUser(username)}
               disabled={!username || isLoggingIn}
-              className="w-full py-4 bg-gradient-to-r from-sky-500 to-teal-500 text-white rounded-2xl font-bold hover:from-sky-600 hover:to-teal-600 transition-all shadow-lg shadow-sky-200 disabled:opacity-50"
+              className="w-full py-4 bg-white text-slate-900 rounded-2xl font-bold hover:bg-sky-50 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
             >
               {isLoggingIn ? 'Joining...' : 'Start Adventure'}
             </button>
@@ -84,31 +91,34 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-teal-50 text-gray-900 font-sans">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-sky-100 selection:text-sky-900">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Header */}
-        <header className="flex items-center justify-between mb-12">
+        <header className="flex items-center justify-between mb-16 bg-white p-4 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-teal-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-sky-100">
-              <Icons.User size={24} />
+            <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-teal-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-sky-100">
+              <Icons.User size={28} />
             </div>
             <div>
-              <h2 className="font-bold text-xl">Hi, {user.username}!</h2>
-              <div className="flex items-center gap-3 text-sm">
-                <span className="flex items-center gap-1 text-yellow-600 font-bold">
-                  <Icons.Star size={14} fill="currentColor" /> {user.stars}
+              <h2 className="font-black text-2xl tracking-tight">Hi, {user.username}!</h2>
+              <div className="flex items-center gap-4 text-sm mt-0.5">
+                <span className="flex items-center gap-1.5 text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-lg">
+                  <Icons.Star size={14} fill="currentColor" /> {user.stars} Points
                 </span>
-                <span className="text-gray-400">•</span>
-                <span className="text-sky-600 font-bold">Level {user.current_level}</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-sky-600 font-bold bg-sky-50 px-2 py-0.5 rounded-lg">Level {user.current_level} Progress</span>
               </div>
             </div>
           </div>
-          <button 
-            onClick={() => { localStorage.removeItem('lingo_user'); setUser(null); }}
-            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-          >
-            <Icons.LogOut size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => { localStorage.removeItem('lingo_user'); setUser(null); }}
+              className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+              title="Logout"
+            >
+              <Icons.LogOut size={22} />
+            </button>
+          </div>
         </header>
 
         <AnimatePresence mode="wait">
@@ -118,29 +128,32 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              className="space-y-10"
             >
-              <div className="md:col-span-2 mb-4">
-                <h3 className="text-2xl font-black mb-2">Your Journey</h3>
-                <p className="text-gray-500">Complete levels to unlock new conversation challenges.</p>
+              <div className="max-w-2xl">
+                <h3 className="text-4xl font-black mb-3 tracking-tight text-slate-900">Your Learning Journey</h3>
+                <p className="text-lg text-slate-500 font-medium">Select a conversation partner to practice your English skills in a safe, AI-powered environment.</p>
               </div>
-              {LEVELS.map((level) => (
-                <LevelCard
-                  key={level.id}
-                  level={level}
-                  isLocked={level.id > user.current_level}
-                  isCompleted={level.id < user.current_level}
-                  onClick={() => setSelectedLevel(level)}
-                />
-              ))}
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {LEVELS.map((level) => (
+                  <LevelCard
+                    key={level.id}
+                    level={level}
+                    isLocked={level.id > user.current_level}
+                    isCompleted={level.id < user.current_level}
+                    onClick={() => setSelectedLevel(level)}
+                  />
+                ))}
+              </div>
             </motion.div>
           ) : (
             <motion.div
               key="chat"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="h-[calc(100vh-200px)] min-h-[600px]"
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="h-[800px] max-h-[calc(100vh-100px)]"
             >
               <Chat
                 level={selectedLevel}

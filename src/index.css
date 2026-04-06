@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  /* Custom Scrollbar for Mac-like feel */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full border-2 border-transparent bg-clip-padding hover:bg-slate-400 transition-colors;
+  }
+}
+
+.glass {
+  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm;
+}
+
+.glass-dark {
+  @apply bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-xl;
+}
