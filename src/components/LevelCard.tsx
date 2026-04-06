@@ -26,8 +26,8 @@ export function LevelCard({ level, isLocked, isCompleted, onClick }: LevelCardPr
       className={cn(
         "relative p-8 rounded-[2.5rem] border-2 transition-all cursor-pointer overflow-hidden group",
         isLocked 
-          ? "bg-slate-100/50 border-slate-200 opacity-60 grayscale cursor-not-allowed" 
-          : "bg-white border-slate-100 hover:border-sky-400 shadow-sm hover:shadow-2xl hover:shadow-sky-100/50",
+          ? "bg-white/30 border-slate-200/50 opacity-60 grayscale cursor-not-allowed" 
+          : "bg-white/80 backdrop-blur-sm border-white/50 hover:border-sky-400 shadow-sm hover:shadow-2xl hover:shadow-sky-100/50",
         isCompleted && "border-emerald-400 bg-emerald-50/30"
       )}
     >
@@ -62,20 +62,20 @@ export function LevelCard({ level, isLocked, isCompleted, onClick }: LevelCardPr
 
       <div className="space-y-3">
         <div>
-          <p className="text-[10px] font-black text-sky-500 uppercase tracking-[0.2em] mb-1">Level {level.id}</p>
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+          <p className="text-[10px] font-black text-sky-600 uppercase tracking-[0.2em] mb-1">Level {level.id}</p>
+          <h3 className="text-2xl font-black text-slate-950 tracking-tight">
             {level.title}
           </h3>
         </div>
-        <p className="text-slate-500 font-medium leading-relaxed">
+        <p className="text-slate-800 font-medium leading-relaxed">
           {level.description}
         </p>
       </div>
 
-      <div className="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
+      <div className="mt-8 pt-6 border-t border-white/20 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-sky-400 rounded-full" />
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{level.voiceName} Voice</span>
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{level.voiceName} Voice</span>
         </div>
         {isCompleted && (
           <div className="flex items-center gap-1.5 text-amber-500 bg-amber-50 px-3 py-1 rounded-full">

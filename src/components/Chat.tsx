@@ -20,6 +20,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
   const [isAITyping, setIsAITyping] = useState(false);
   const [translation, setTranslation] = useState<{ text: string; original: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const greetingSentRef = useRef(false);
   const { isListening, transcript, startListening, stopListening, playPCM } = useSpeech();
@@ -54,14 +55,19 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
   }, [messages, isAITyping]);
 
   const fetchMessages = async () => {
-    const res = await fetch(`/api/messages/${user.username}/${level.id}`);
-    const data = await res.json();
-    setMessages(data);
-    
-    if (data.length === 0 && !greetingSentRef.current) {
-      greetingSentRef.current = true;
-      // Initial greeting
-      handleAISend(`Hello, ${user.username}! I'm Speak Easy AI - your personal coach. I will help you to speak English fluently and confidently. ` + (level.id === 1 ? "Don't be nervous, we'll start with very simple topics and speak slowly. How are you feeling today?" : "Are you ready to practice? Let's begin!"));
+    try {
+      const res = await fetch(`/api/messages/${user.username}/${level.id}`);
+      if (!res.ok) throw new Error('Failed to fetch messages');
+      const data = await res.json();
+      setMessages(data);
+      
+      if (data.length === 0 && !greetingSentRef.current) {
+        greetingSentRef.current = true;
+        // Initial greeting
+        await handleAISend(`Hello, ${user.username}! I'm Speak Easy AI - your personal coach. I will help you to speak English fluently and confidently. ` + (level.id === 1 ? "Don't be nervous, we'll start with very simple topics and speak slowly. How are you feeling today?" : "Are you ready to practice? Let's begin!"));
+      }
+    } catch (error) {
+      console.error("Error fetching messages:", error);
     }
   };
 
@@ -83,46 +89,55 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
       });
 
       const aiText = await generateAIResponse(level, messages, text);
-      handleAISend(aiText);
+      await handleAISend(aiText);
 
       // Simple completion logic: after 5 exchanges
-      if (messages.length >= 8) {
+      if (messages.length >= 8 && !isCompleted) {
+        setIsCompleted(true);
         onComplete();
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error in handleSend:", error);
     } finally {
       setIsLoading(false);
+      setIsAITyping(false);
     }
   };
 
   const handleAISend = async (text: string) => {
-    const aiMsg: Message = { role: 'model', content: text, level: level.id };
-    setMessages(prev => [...prev, aiMsg]);
-    setIsAITyping(false);
+    try {
+      const aiMsg: Message = { role: 'model', content: text, level: level.id };
+      setMessages(prev => [...prev, aiMsg]);
+      setIsAITyping(false);
 
-    // Save AI message
-    await fetch('/api/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...aiMsg, username: user.username })
-    });
+      // Parallelize DB save and speech generation for speed
+      const savePromise = fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...aiMsg, username: user.username })
+      });
 
-    // Generate and play speech
-    const audio = await generateSpeech(text, level);
-    if (audio) {
-      playPCM(audio);
+      const speechPromise = generateSpeech(text, level);
+      
+      const [_, audio] = await Promise.all([savePromise, speechPromise]);
+      
+      if (audio) {
+        await playPCM(audio);
+      }
+    } catch (error) {
+      console.error("Error in handleAISend:", error);
+      setIsAITyping(false);
     }
   };
 
   return (
     <div className="flex flex-col h-full glass rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/50 relative">
       {/* Header */}
-      <div className="bg-white/40 backdrop-blur-xl p-6 border-b border-slate-200/50 flex items-center justify-between">
+      <div className="bg-white/60 backdrop-blur-xl p-6 border-b border-white/20 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack} 
-            className="p-3 hover:bg-white rounded-2xl transition-all text-slate-600 shadow-sm hover:shadow-md active:scale-95"
+            className="p-3 hover:bg-white/80 rounded-2xl transition-all text-slate-600 shadow-sm hover:shadow-md active:scale-95"
           >
             <Icons.ArrowLeft size={22} />
           </button>
@@ -134,7 +149,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 bg-white/80 px-4 py-2 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-3 bg-white/80 px-4 py-2 rounded-2xl shadow-sm border border-white/40">
           <div className="flex -space-x-2">
             {[...Array(5)].map((_, i) => (
               <div 
@@ -162,10 +177,12 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
               <div className={`max-w-[75%] relative group ${msg.role === 'user' ? 'order-2' : ''}`}>
                 <div className={`p-5 rounded-[2rem] shadow-sm transition-all duration-300 ${
                   msg.role === 'user' 
-                    ? 'bg-slate-900 text-white rounded-tr-none shadow-slate-200' 
-                    : 'bg-white text-slate-800 rounded-tl-none border border-slate-100'
+                    ? 'bg-sky-600 text-white rounded-tr-none shadow-sky-100' 
+                    : 'bg-white text-slate-950 rounded-tl-none border border-white/50'
                 }`}>
-                  <div className="prose prose-slate prose-sm max-w-none leading-relaxed font-medium">
+                  <div className={`prose prose-sm max-w-none leading-relaxed font-medium ${
+                    msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate text-slate-900'
+                  }`}>
                     <ReactMarkdown>
                       {msg.content}
                     </ReactMarkdown>
@@ -272,7 +289,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
       </AnimatePresence>
 
       {/* Input Area */}
-      <div className="p-8 bg-white/80 backdrop-blur-xl border-t border-slate-200/50">
+      <div className="p-8 bg-white/60 backdrop-blur-xl border-t border-white/20">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -282,7 +299,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
             className={`p-5 rounded-2xl transition-all shadow-lg ${
               isListening 
                 ? 'bg-red-500 text-white shadow-red-200 ring-4 ring-red-100' 
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-slate-100'
+                : 'bg-white/80 text-slate-600 hover:bg-white shadow-sky-100'
             }`}
           >
             <Icons.Mic size={28} />
@@ -295,7 +312,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSend(input)}
               placeholder="Type your response here..."
-              className="w-full bg-slate-100 border-2 border-transparent rounded-2xl px-6 py-5 focus:bg-white focus:border-sky-500 focus:ring-4 focus:ring-sky-500/5 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400"
+              className="w-full bg-white/80 border-2 border-transparent rounded-2xl px-6 py-5 focus:bg-white focus:border-sky-400 focus:ring-4 focus:ring-sky-500/5 outline-none transition-all font-medium text-slate-800 placeholder:text-slate-400"
             />
           </div>
 
@@ -304,7 +321,7 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
             whileTap={{ scale: 0.95 }}
             onClick={() => handleSend(input)}
             disabled={!input.trim() || isLoading}
-            className="p-5 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 disabled:opacity-50 transition-all shadow-xl shadow-slate-200"
+            className="p-5 bg-premium-gradient text-white rounded-2xl hover:opacity-90 disabled:opacity-50 transition-all shadow-xl shadow-sky-100"
           >
             <Icons.Send size={28} />
           </motion.button>

@@ -9,32 +9,61 @@ if (!apiKey) {
 const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 export async function generateAIResponse(level: Level, history: Message[], currentMessage: string) {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-flash-latest";
   
+  if (!process.env.GEMINI_API_KEY) {
+    return "Error: Gemini API Key is not configured. Please add it to the Secrets panel in the AI Studio settings.";
+  }
+
+  // Filter history to ensure it starts with a 'user' message
+  // Gemini requires the first message in a multi-turn conversation to be from the user.
+  let formattedHistory = history.map(m => ({
+    role: m.role === 'model' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+
+  // Find the first 'user' message index
+  const firstUserIndex = formattedHistory.findIndex(m => m.role === 'user');
+  if (firstUserIndex !== -1) {
+    formattedHistory = formattedHistory.slice(firstUserIndex);
+  } else {
+    // If no user message in history, start fresh with the current message
+    formattedHistory = [];
+  }
+
   const contents = [
-    ...history.map(m => ({
-      role: m.role,
-      parts: [{ text: m.content }]
-    })),
+    ...formattedHistory,
     {
       role: "user",
       parts: [{ text: currentMessage }]
     }
   ];
 
-  const response = await ai.models.generateContent({
-    model,
-    contents: contents as any,
-    config: {
-      systemInstruction: level.instruction,
-    }
-  });
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: contents as any,
+      config: {
+        systemInstruction: level.instruction,
+      }
+    });
 
-  return response.text || "I'm sorry, I couldn't generate a response.";
+    return response.text || "I'm sorry, I couldn't generate a response.";
+  } catch (error: any) {
+    console.error("Gemini AI Response Error:", error);
+    if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("API key not found") || error.message?.includes("403")) {
+      return "Error: Gemini API Key is missing, invalid, or lacks permissions. Please check your project settings.";
+    }
+    return "I'm having trouble connecting to my brain right now. Please try again in a moment.";
+  }
 }
 
 export async function generateSpeech(text: string, level: Level, retries = 2) {
   if (!text || text.trim().length === 0) return null;
+  if (!process.env.GEMINI_API_KEY) {
+    console.error("Speech generation failed: GEMINI_API_KEY is missing!");
+    return null;
+  }
 
   // Sanitize text: remove markdown and extra whitespace
   const sanitizedText = text
@@ -73,7 +102,10 @@ export async function generateSpeech(text: string, level: Level, retries = 2) {
 }
 
 export async function translatePhrase(phrase: string) {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-flash-latest";
+  if (!process.env.GEMINI_API_KEY) {
+    return "Error: Gemini API Key is missing.";
+  }
   const prompt = `Translate the following English word or idiom into Russian. Provide a brief explanation if it's an idiom. 
   Format: "Translation: [translation] \n Explanation: [explanation if needed]"
   Phrase: "${phrase}"`;

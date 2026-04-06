@@ -52,9 +52,14 @@ export function useSpeech() {
 
   const startListening = useCallback(() => {
     if (recognitionRef.current) {
-      setTranscript('');
-      setIsListening(true);
-      recognitionRef.current.start();
+      try {
+        setTranscript('');
+        setIsListening(true);
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Speech recognition start failed:', error);
+        setIsListening(false);
+      }
     }
   }, []);
 

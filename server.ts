@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const db = new Database('database.sqlite');
+const db = new Database(path.join(__dirname, 'database.sqlite'));
 
 // Initialize DB
 db.exec(`
@@ -35,46 +35,72 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Logging middleware
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+  });
+
   // API Routes
   app.get('/api/user/:username', (req, res) => {
-    const { username } = req.params;
-    let user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-    
-    if (!user) {
-      const info = db.prepare('INSERT INTO users (username) VALUES (?)').run(username);
-      user = { id: info.lastInsertRowid, username, current_level: 1, stars: 0 };
+    try {
+      const { username } = req.params;
+      let user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+      
+      if (!user) {
+        const info = db.prepare('INSERT INTO users (username) VALUES (?)').run(username);
+        user = { id: info.lastInsertRowid, username, current_level: 1, stars: 0 };
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error in /api/user/:username:", error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-    
-    res.json(user);
   });
 
   app.post('/api/user/progress', (req, res) => {
-    const { username, level, stars } = req.body;
-    db.prepare('UPDATE users SET current_level = ?, stars = stars + ? WHERE username = ?')
-      .run(level, stars, username);
-    res.json({ success: true });
+    try {
+      const { username, level, stars } = req.body;
+      db.prepare('UPDATE users SET current_level = ?, stars = stars + ? WHERE username = ?')
+        .run(level, stars, username);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error in /api/user/progress:", error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.get('/api/messages/:username/:level', (req, res) => {
-    const { username, level } = req.params;
-    const messages = db.prepare(`
-      SELECT m.* FROM messages m
-      JOIN users u ON m.user_id = u.id
-      WHERE u.username = ? AND m.level = ?
-      ORDER BY m.timestamp ASC
-    `).all(username, level);
-    res.json(messages);
+    try {
+      const { username, level } = req.params;
+      const messages = db.prepare(`
+        SELECT m.* FROM messages m
+        JOIN users u ON m.user_id = u.id
+        WHERE u.username = ? AND m.level = ?
+        ORDER BY m.timestamp ASC
+      `).all(username, level);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error in /api/messages/:username/:level:", error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   app.post('/api/messages', (req, res) => {
-    const { username, role, content, level } = req.body;
-    const user = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
-    if (user) {
-      db.prepare('INSERT INTO messages (user_id, role, content, level) VALUES (?, ?, ?, ?)')
-        .run(user.id, role, content, level);
-      res.json({ success: true });
-    } else {
-      res.status(404).json({ error: 'User not found' });
+    try {
+      const { username, role, content, level } = req.body;
+      const user = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+      if (user) {
+        db.prepare('INSERT INTO messages (user_id, role, content, level) VALUES (?, ?, ?, ?)')
+          .run(user.id, role, content, level);
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: 'User not found' });
+      }
+    } catch (error) {
+      console.error("Error in /api/messages:", error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
