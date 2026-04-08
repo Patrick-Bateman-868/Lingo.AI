@@ -82,13 +82,15 @@ export default function App() {
                 className="w-full pl-14 pr-6 py-4 bg-white/60 border border-slate-300 rounded-2xl text-slate-950 placeholder:text-slate-500 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 outline-none transition-all font-bold"
               />
             </div>
-            <button
+            <motion.button
+              whileHover={{ scale: 1.02, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1)" }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => username && fetchUser(username)}
               disabled={!username || isLoggingIn}
-              className="w-full py-4 bg-premium-gradient text-white rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50"
+              className="w-full py-5 bg-premium-gradient text-white rounded-2xl font-black text-lg uppercase tracking-widest hover:opacity-90 transition-all shadow-xl shadow-sky-200 disabled:opacity-50"
             >
-              {isLoggingIn ? 'Joining...' : 'Start Adventure'}
-            </button>
+              {isLoggingIn ? 'Preparing Journey...' : 'Start Adventure'}
+            </motion.button>
           </div>
         </motion.div>
       </div>
@@ -116,6 +118,18 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button 
+              onClick={() => {
+                if (confirm("Reset all your progress and messages?")) {
+                  localStorage.removeItem('lingo_user');
+                  window.location.reload();
+                }
+              }}
+              className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+              title="Reset All Progress"
+            >
+              <Icons.Trash2 size={22} />
+            </button>
             <button 
               onClick={() => { localStorage.removeItem('lingo_user'); setUser(null); }}
               className="p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"

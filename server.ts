@@ -42,6 +42,10 @@ async function startServer() {
   });
 
   // API Routes
+  app.get('/api/user/test-connection', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   app.get('/api/user/:username', (req, res) => {
     try {
       const { username } = req.params;
@@ -100,6 +104,22 @@ async function startServer() {
       }
     } catch (error) {
       console.error("Error in /api/messages:", error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  app.delete('/api/messages/clear/:username/:level', (req, res) => {
+    try {
+      const { username, level } = req.params;
+      const user = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+      if (user) {
+        db.prepare('DELETE FROM messages WHERE user_id = ? AND level = ?').run(user.id, level);
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: 'User not found' });
+      }
+    } catch (error) {
+      console.error("Error in /api/messages/clear:", error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

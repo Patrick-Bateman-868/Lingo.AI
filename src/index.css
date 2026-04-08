@@ -7,20 +7,20 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 antialiased font-sans;
+    @apply bg-slate-50 text-slate-950 antialiased font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   /* Ensure text is always visible on Mac */
   * {
-    @apply text-slate-900;
+    @apply text-slate-950;
   }
 
   /* Custom Scrollbar for Mac-like feel */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -28,24 +28,24 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full border-2 border-transparent bg-clip-padding hover:bg-slate-400 transition-colors;
+    @apply bg-slate-400 rounded-full border-2 border-transparent bg-clip-padding hover:bg-slate-500 transition-colors;
   }
 }
 
 @layer utilities {
   .bg-main-gradient {
-    background: linear-gradient(135deg, #e0f2fe 0%, #ccfbf1 100%);
+    background: linear-gradient(135deg, #dcfce7 0%, #ccfbf1 100%);
   }
 
   .bg-premium-gradient {
-    background: linear-gradient(135deg, #0ea5e9 0%, #14b8a6 100%);
+    background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%);
   }
 }
 
 .glass {
-  @apply bg-white/70 backdrop-blur-md border border-white/40 shadow-sm;
+  @apply bg-white/95 backdrop-blur-xl border border-white/60 shadow-xl;
 }
 
 .glass-dark {
-  @apply bg-slate-900/80 backdrop-blur-md border border-white/10 shadow-xl;
+  @apply bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl;
 }

@@ -8,6 +8,60 @@ if (!apiKey) {
 
 const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
+export async function* generateAIResponseStream(level: Level, history: Message[], currentMessage: string) {
+  const model = "gemini-flash-latest";
+  
+  if (!process.env.GEMINI_API_KEY) {
+    yield "Error: Gemini API Key is not configured.";
+    return;
+  }
+
+  let formattedHistory = history.map(m => ({
+    role: m.role === 'model' ? 'model' : 'user',
+    parts: [{ text: m.content }]
+  }));
+
+  const firstUserIndex = formattedHistory.findIndex(m => m.role === 'user');
+  if (firstUserIndex !== -1) {
+    formattedHistory = formattedHistory.slice(firstUserIndex);
+  } else {
+    formattedHistory = [];
+  }
+
+  const contents = [
+    ...formattedHistory,
+    {
+      role: "user",
+      parts: [{ text: currentMessage }]
+    }
+  ];
+
+  try {
+    const response = await ai.models.generateContentStream({
+      model,
+      contents: contents as any,
+      config: {
+        systemInstruction: level.instruction,
+      }
+    });
+
+    for await (const chunk of response) {
+      const text = chunk.text;
+      if (text) yield text;
+    }
+  } catch (error: any) {
+    console.error("Gemini Streaming Error:", error);
+    const errorMessage = error.message || "";
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      yield "Error: Rate limit exceeded. Please wait a minute before trying again.";
+    } else if (errorMessage.includes("SAFETY")) {
+      yield "Error: The response was blocked by safety filters. Please try a different topic.";
+    } else {
+      yield "I'm having trouble connecting to my brain right now. Please try again in a moment.";
+    }
+  }
+}
+
 export async function generateAIResponse(level: Level, history: Message[], currentMessage: string) {
   const model = "gemini-flash-latest";
   
@@ -51,8 +105,15 @@ export async function generateAIResponse(level: Level, history: Message[], curre
     return response.text || "I'm sorry, I couldn't generate a response.";
   } catch (error: any) {
     console.error("Gemini AI Response Error:", error);
-    if (error.message?.includes("API_KEY_INVALID") || error.message?.includes("API key not found") || error.message?.includes("403")) {
+    const errorMessage = error.message || "";
+    if (errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("API key not found") || errorMessage.includes("403")) {
       return "Error: Gemini API Key is missing, invalid, or lacks permissions. Please check your project settings.";
+    }
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota")) {
+      return "Error: Rate limit exceeded (15 requests per minute for free tier). Please wait a moment.";
+    }
+    if (errorMessage.includes("SAFETY")) {
+      return "Error: This conversation was flagged by safety filters. Let's talk about something else!";
     }
     return "I'm having trouble connecting to my brain right now. Please try again in a moment.";
   }

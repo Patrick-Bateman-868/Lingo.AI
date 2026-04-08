@@ -6,14 +6,66 @@ export function useSpeech() {
   const recognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const currentSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const audioQueueRef = useRef<string[]>([]);
+  const isPlayingRef = useRef(false);
+
+  const processQueue = useCallback(async () => {
+    if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
+    
+    isPlayingRef.current = true;
+    const base64Data = audioQueueRef.current.shift()!;
+    
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
+      }
+
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      const binaryString = atob(base64Data);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const int16Data = new Int16Array(bytes.buffer, 0, Math.floor(bytes.byteLength / 2));
+      const float32Data = new Float32Array(int16Data.length);
+      for (let i = 0; i < int16Data.length; i++) {
+        float32Data[i] = int16Data[i] / 32768;
+      }
+
+      const buffer = audioContextRef.current.createBuffer(1, float32Data.length, 24000);
+      buffer.copyToChannel(float32Data, 0);
+
+      const source = audioContextRef.current.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContextRef.current.destination);
+      
+      source.onended = () => {
+        isPlayingRef.current = false;
+        currentSourceRef.current = null;
+        processQueue();
+      };
+
+      source.start();
+      currentSourceRef.current = source;
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      isPlayingRef.current = false;
+      processQueue();
+    }
+  }, []);
 
   const stopAudio = useCallback(() => {
+    audioQueueRef.current = [];
+    isPlayingRef.current = false;
     if (currentSourceRef.current) {
       try {
         currentSourceRef.current.stop();
-      } catch (e) {
-        // Ignore errors if already stopped
-      }
+      } catch (e) {}
       currentSourceRef.current = null;
     }
   }, []);
@@ -71,48 +123,9 @@ export function useSpeech() {
   }, []);
 
   const playPCM = useCallback(async (base64Data: string) => {
-    stopAudio();
-
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new AudioContext({ sampleRate: 24000 });
-      }
-
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-
-      const binaryString = atob(base64Data);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      const int16Data = new Int16Array(bytes.buffer, 0, Math.floor(bytes.byteLength / 2));
-      const float32Data = new Float32Array(int16Data.length);
-      for (let i = 0; i < int16Data.length; i++) {
-        float32Data[i] = int16Data[i] / 32768;
-      }
-
-      const buffer = audioContextRef.current.createBuffer(1, float32Data.length, 24000);
-      buffer.copyToChannel(float32Data, 0);
-
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = buffer;
-      source.connect(audioContextRef.current.destination);
-      source.start();
-      currentSourceRef.current = source;
-
-      source.onended = () => {
-        if (currentSourceRef.current === source) {
-          currentSourceRef.current = null;
-        }
-      };
-    } catch (error) {
-      console.error('Error playing audio:', error);
-    }
-  }, [stopAudio]);
+    audioQueueRef.current.push(base64Data);
+    processQueue();
+  }, [processQueue]);
 
   return {
     isListening,

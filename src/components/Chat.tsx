@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import * as Icons from 'lucide-react';
 import { Message, Level, User } from '../types';
-import { generateAIResponse, generateSpeech, translatePhrase } from '../services/gemini';
+import { generateAIResponseStream, generateSpeech, translatePhrase } from '../services/gemini';
 import { useSpeech } from '../hooks/useSpeech';
 import ReactMarkdown from 'react-markdown';
 
@@ -21,9 +21,23 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
   const [translation, setTranslation] = useState<{ text: string; original: string } | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'ok' | 'error'>('checking');
   const scrollRef = useRef<HTMLDivElement>(null);
   const greetingSentRef = useRef(false);
   const { isListening, transcript, startListening, stopListening, playPCM } = useSpeech();
+
+  useEffect(() => {
+    // Quick API check
+    const checkApi = async () => {
+      try {
+        const res = await fetch('/api/user/test-connection'); // We'll add this dummy route
+        setApiStatus(res.ok ? 'ok' : 'error');
+      } catch {
+        setApiStatus('error');
+      }
+    };
+    checkApi();
+  }, []);
 
   const handleTranslate = async (text: string) => {
     setIsTranslating(true);
@@ -81,17 +95,58 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
     setIsAITyping(true);
 
     try {
-      // Save user message
-      await fetch('/api/messages', {
+      // Save user message (don't await to speed up AI start)
+      fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...userMsg, username: user.username })
       });
 
-      const aiText = await generateAIResponse(level, messages, text);
-      await handleAISend(aiText);
+      let fullAIContent = '';
+      let currentSentence = '';
+      const aiMsg: Message = { role: 'model', content: '', level: level.id };
+      setMessages(prev => [...prev, aiMsg]);
 
-      // Simple completion logic: after 5 exchanges
+      const stream = generateAIResponseStream(level, messages, text);
+      
+      for await (const chunk of stream) {
+        fullAIContent += chunk;
+        currentSentence += chunk;
+        setIsAITyping(false);
+
+        // Update the last message in state
+        setMessages(prev => {
+          const newMsgs = [...prev];
+          newMsgs[newMsgs.length - 1].content = fullAIContent;
+          return newMsgs;
+        });
+
+        // If we have a complete sentence, start TTS
+        if (/[.!?]\s$/.test(currentSentence) || currentSentence.length > 100) {
+          const sentenceToSpeak = currentSentence.trim();
+          currentSentence = '';
+          if (sentenceToSpeak) {
+            generateSpeech(sentenceToSpeak, level).then(audio => {
+              if (audio) playPCM(audio);
+            });
+          }
+        }
+      }
+
+      // Speak remaining text if any
+      if (currentSentence.trim()) {
+        generateSpeech(currentSentence.trim(), level).then(audio => {
+          if (audio) playPCM(audio);
+        });
+      }
+
+      // Save full AI message
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'model', content: fullAIContent, level: level.id, username: user.username })
+      });
+
       if (messages.length >= 8 && !isCompleted) {
         setIsCompleted(true);
         onComplete();
@@ -110,17 +165,14 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
       setMessages(prev => [...prev, aiMsg]);
       setIsAITyping(false);
 
-      // Parallelize DB save and speech generation for speed
-      const savePromise = fetch('/api/messages', {
+      // Save AI message
+      await fetch('/api/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...aiMsg, username: user.username })
       });
 
-      const speechPromise = generateSpeech(text, level);
-      
-      const [_, audio] = await Promise.all([savePromise, speechPromise]);
-      
+      const audio = await generateSpeech(text, level);
       if (audio) {
         await playPCM(audio);
       }
@@ -146,11 +198,30 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
             <div className="flex items-center gap-2 mt-0.5">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Level {level.id} • {level.voiceName} Voice</p>
+              <span className="text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter ml-2">Live AI</span>
+              {apiStatus === 'error' && (
+                <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter ml-2">Offline</span>
+              )}
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 bg-white/80 px-4 py-2 rounded-2xl shadow-sm border border-white/40">
-          <div className="flex -space-x-2">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={async () => {
+              if (confirm("Reset this level's conversation?")) {
+                await fetch(`/api/messages/clear/${user.username}/${level.id}`, { method: 'DELETE' });
+                setMessages([]);
+                greetingSentRef.current = false;
+                fetchMessages();
+              }
+            }}
+            className="p-3 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-2xl transition-all"
+            title="Reset Level"
+          >
+            <Icons.RotateCcw size={20} />
+          </button>
+          <div className="flex items-center gap-3 bg-white/80 px-4 py-2 rounded-2xl shadow-sm border border-white/40">
+            <div className="flex -space-x-2">
             {[...Array(5)].map((_, i) => (
               <div 
                 key={i} 
@@ -163,8 +234,9 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
           <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">Progress</span>
         </div>
       </div>
+    </div>
 
-      {/* Chat Area */}
+    {/* Chat Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-8 scroll-smooth">
         <AnimatePresence initial={false}>
           {messages.map((msg, i) => (
@@ -187,6 +259,14 @@ export function Chat({ level, user, onBack, onComplete }: ChatProps) {
                       {msg.content}
                     </ReactMarkdown>
                   </div>
+                  {msg.content.includes("Error:") && (
+                    <button 
+                      onClick={() => handleSend(messages[i-1]?.content || "")}
+                      className="mt-3 text-xs font-bold underline hover:no-underline"
+                    >
+                      Try Again
+                    </button>
+                  )}
                 </div>
                 
                 {msg.role === 'model' && (
